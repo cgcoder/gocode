@@ -1,0 +1,2 @@
+# gocode
+Golang practice repo
