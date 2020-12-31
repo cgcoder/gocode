@@ -5,3 +5,8 @@ docker tag // to tag docker image
 /home/gopi/go/bin/air <-- kick off air for autobuilding
 
 sudo docker run -p 5433:5432 local/postgresql:1.0
+
+Post gre sql connection string for Test
+host=127.0.0.1 port=5433 user=docker password=docker database=docker
+Connect using psql
+psql -h localhost -p 5433 -U docker

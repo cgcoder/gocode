@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/gocode/learnpack/server"
 )
 
 func handler(writer http.ResponseWriter, request *http.Request) {
@@ -18,6 +20,9 @@ func preference(context *Context) {
 }
 
 func main() {
+	server.InitServer()
+
+	defer server.UnInitServer()
 	mux := http.NewServeMux()
 	files := http.FileServer(http.Dir("./public"))
 	mux.Handle("/static/", http.StripPrefix("/static/", files))
