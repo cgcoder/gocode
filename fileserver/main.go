@@ -46,6 +46,13 @@ func handler(writer http.ResponseWriter, request *http.Request) {
 func main() {
 	args := getArgs()
 	fmt.Printf("Starting fileserver on port : %d\n", args.port)
-	http.HandleFunc(fmt.Sprintf(":%d", args.port), handler)
+
+	mux := http.NewServeMux()
+	mux.Handle("/", http.HandlerFunc(handler))
+	srv := &http.Server{
+		Handler: mux,
+		Addr:    fmt.Sprintf(":%d", args.port),
+	}
+	srv.ListenAndServe()
 	fmt.Printf("Good Bye!")
 }
