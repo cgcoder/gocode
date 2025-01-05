@@ -45,37 +45,6 @@ func NewFormatter(inFilePath string, outFilePath string) (*Formatter, error) {
 	}, nil
 }
 
-type ProcessRuneResult struct {
-	stateChange bool
-	processed   bool
-	err         error
-}
-
-func StateChanged() ProcessRuneResult {
-	return ProcessRuneResult{
-		stateChange: true,
-	}
-}
-
-func Processed() ProcessRuneResult {
-	return ProcessRuneResult{
-		processed: true,
-	}
-}
-
-func Errored(err error) ProcessRuneResult {
-	return ProcessRuneResult{
-		err: err,
-	}
-}
-
-func ProcessedWithStateChange() ProcessRuneResult {
-	return ProcessRuneResult{
-		processed:   true,
-		stateChange: true,
-	}
-}
-
 func (f *Formatter) Close() {
 	f.inFile.Close()
 	f.outFile.Close()
@@ -320,9 +289,12 @@ func (f *Formatter) processMember() error {
 		return err
 	}
 	if data != ':' {
-		return errors.New("Invalid character. Expecting ':'")
+		return errors.New("invalid character. expecting ':'")
 	}
 	_, err = f.outFile.Write([]byte(": "))
+	if err != nil {
+		return err
+	}
 	return f.processElement()
 }
 
@@ -333,11 +305,16 @@ func (f *Formatter) processString() error {
 	}
 
 	if data != '"' {
-		return errors.New("Invalid character. Expecting '\"'")
+		return errors.New("invalid character. expecting '\"'")
 	}
 
 	_, err = f.outFile.Write([]byte("\""))
-	// TODO: Handle escape
+	if err != nil {
+		return err
+	}
+
+	lastRune := rune(0)
+	// TODO: Not upto standard
 	for {
 		data, err = f.Next()
 		if err != nil {
@@ -347,9 +324,10 @@ func (f *Formatter) processString() error {
 		if err != nil {
 			return nil
 		}
-		if data == '"' {
+		if lastRune != '\\' && data == '"' {
 			break
 		}
+		lastRune = data
 	}
 	return nil
 }
@@ -390,8 +368,6 @@ func (f *Formatter) processNumber() error {
 			return err
 		}
 	}
-
-	return nil
 }
 
 func (f *Formatter) processAndMatch(match string, writeString string) error {
@@ -401,7 +377,7 @@ func (f *Formatter) processAndMatch(match string, writeString string) error {
 			return err
 		}
 		if data != rune(match[i]) {
-			return errors.New("Invalid character")
+			return errors.New("invalid character")
 		}
 	}
 
