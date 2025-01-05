@@ -98,6 +98,36 @@ func (f *Formatter) StartFormat() error {
 	return nil
 }
 
+func (f *Formatter) processElements() error {
+	f.newLine()
+	f.indent()
+
+	err := f.processElement()
+	if err != nil {
+		return err
+	}
+
+	data, err := f.Next()
+	if err != nil {
+		return err
+	}
+	if data == ',' {
+		_, err = f.outFile.Write([]byte(","))
+		if err != nil {
+			return err
+		}
+		return f.processElements()
+	}
+
+	if data == ']' {
+		err = f.fileReader.UnreadRune()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (f *Formatter) processElement() error {
 	err := f.consumeWhiteSpace()
 	if err != nil {
@@ -128,10 +158,8 @@ func (f *Formatter) processValue() error {
 			err = f.processObject()
 		}
 	case '[':
-		_, err = f.outFile.Write([]byte("[\n"))
-		if err == nil {
-			err = f.updateIndentation(1)
-		}
+		f.fileReader.UnreadRune()
+		err = f.processArray()
 	case '"':
 		f.fileReader.UnreadRune()
 		err = f.processString()
@@ -149,6 +177,55 @@ func (f *Formatter) processValue() error {
 	return err
 }
 
+func (f *Formatter) processArray() error {
+	data, err := f.Next()
+	if err != nil {
+		return err
+	}
+	if data != '[' {
+		return errors.New("invalid character. expecting '['")
+	}
+	f.outFile.Write([]byte("["))
+
+	err = f.consumeWhiteSpace()
+	if err != nil {
+		return err
+	}
+	data, _ = f.Next()
+	if data == ']' {
+		// empty array
+		f.outFile.Write([]byte("]"))
+		return nil
+	}
+	f.fileReader.UnreadRune()
+	err = f.updateIndentation(1)
+	if err != nil {
+		return err
+	}
+	err = f.processElements()
+	if err != nil {
+		return err
+	}
+
+	data, err = f.Next()
+	if err != nil {
+		return err
+	}
+	if data != ']' {
+		return errors.New("invalid character. expecting ']'")
+	}
+	f.newLine()
+	err = f.updateIndentation(-1)
+	if err != nil {
+		return err
+	}
+	f.indent()
+	_, err = f.outFile.Write([]byte("]"))
+	if err != nil {
+		return err
+	}
+	return err
+}
 func (f *Formatter) processObject() error {
 	data, err := f.Next()
 	if err != nil {
